@@ -1,0 +1,90 @@
+2026-01-16 15:28:59,585 - INFO - ================================================================================
+2026-01-16 15:28:59,585 - INFO - Starting PSI Training Pipeline
+2026-01-16 15:28:59,586 - INFO - ================================================================================
+2026-01-16 15:28:59,586 - INFO - Starting SIL V1 models processing...
+2026-01-16 15:28:59,586 - INFO - Processing Alpha - CIC-SIL-Model...
+2026-01-16 15:29:05,450 - INFO - The shape of the dataframe is: (204452, 15)
+2026-01-16 15:29:27,351 - INFO - 
+Alpha - CIC-SIL-Model Data Summary:
+2026-01-16 15:29:27,351 - INFO -   Data_selection  digitalLoanAccountId_count Application_date_min Application_date_max
+0       Dev_Test                      105730           2024-10-01           2025-03-08
+1      Dev_Train                       62128           2024-06-01           2024-09-30
+2      Pre_Train                       36594           2023-01-10           2024-05-31
+2026-01-16 15:29:37,420 - INFO - Alpha - CIC-SIL-Model uploaded to BigQuery
+2026-01-16 15:29:37,420 - INFO - 
+Processing Alpha - StackingModel...
+2026-01-16 15:29:42,519 - INFO - The shape of the dataframe is: (204452, 10)
+2026-01-16 15:29:59,734 - INFO - 
+Alpha - StackingModel Data Summary:
+2026-01-16 15:29:59,736 - INFO -   Data_selection  digitalLoanAccountId_count Application_date_min Application_date_max
+0       Dev_Test                      105730           2024-10-01           2025-03-08
+1      Dev_Train                       62128           2024-06-01           2024-09-30
+2      Pre_Train                       36594           2023-01-10           2024-05-31
+2026-01-16 15:30:13,415 - INFO - Alpha - StackingModel uploaded to BigQuery
+2026-01-16 15:30:13,415 - INFO - 
+Processing Beta - AppsScoreModel...
+2026-01-16 15:30:22,211 - INFO - The shape of the dataframe is: (317384, 22)
+2026-01-16 15:31:09,604 - INFO - 
+Beta - AppsScoreModel Data Summary:
+2026-01-16 15:31:09,604 - INFO -   Data_selection  digitalLoanAccountId_count Application_date_min Application_date_max
+0       Dev_Test                      200327           2024-07-01           2025-03-08
+1      Dev_Train                       86480           2023-12-01           2024-06-30
+2      Pre_Train                       30577           2023-01-02           2023-11-30
+2026-01-16 15:31:25,228 - INFO - Beta - AppsScoreModel uploaded to BigQuery
+2026-01-16 15:31:25,228 - INFO - 
+Processing Beta - DemoScoreModel...
+2026-01-16 15:31:36,479 - INFO - The shape of the dataframe is: (349206, 23)
+2026-01-16 15:32:29,196 - INFO - 
+Beta - DemoScoreModel Data Summary:
+2026-01-16 15:32:29,196 - INFO -   Data_selection  digitalLoanAccountId_count Application_date_min Application_date_max
+0       Dev_Test                      219881           2024-07-01           2025-03-08
+1      Dev_Train                      121661           2023-07-01           2024-06-30
+2      Pre_Train                        7664           2023-01-02           2023-06-30
+2026-01-16 15:32:41,960 - INFO - Beta - DemoScoreModel uploaded to BigQuery
+2026-01-16 15:32:41,960 - INFO - 
+Processing Beta - StackScoreModel...
+2026-01-16 15:32:49,948 - INFO - The shape of the dataframe is: (349206, 9)
+2026-01-16 15:33:17,150 - INFO - 
+Beta - StackScoreModel Data Summary:
+2026-01-16 15:33:17,150 - INFO -   Data_selection  digitalLoanAccountId_count Application_date_min Application_date_max
+0       Dev_Test                      219881           2024-07-01           2025-03-08
+1      Dev_Train                      121661           2023-07-01           2024-06-30
+2      Pre_Train                        7664           2023-01-02           2023-06-30
+2026-01-16 15:33:33,163 - INFO - Beta - StackScoreModel uploaded to BigQuery
+2026-01-16 15:33:33,163 - INFO - 
+SIL V1 models processing completed!
+2026-01-16 15:33:33,163 - INFO - 
+Starting Cash V1 models processing...
+2026-01-16 15:33:33,163 - INFO - 
+Processing Alpha-Cash-Stack-Model - Trench 1...
+2026-01-16 15:33:37,140 - INFO - The shape of the dataframe is: (66557, 11)
+2026-01-16 15:33:43,427 - INFO - 
+Alpha-Cash-Stack-Model (Trench 1) Data Summary:
+2026-01-16 15:33:43,427 - INFO -   Data_selection  digitalLoanAccountId_count Application_date_min Application_date_max
+0       Dev_Test                       33061           2025-03-01           2025-09-23
+1      Dev_Train                       33496           2024-10-01           2025-02-28
+2026-01-16 15:33:49,240 - INFO - Alpha-Cash-Stack-Model (Trench 1) uploaded to BigQuery
+2026-01-16 15:33:49,240 - INFO - 
+Processing Alpha-Cash-Stack-Model - Trench 2...
+2026-01-16 15:33:53,021 - INFO - The shape of the dataframe is: (42288, 11)
+2026-01-16 15:33:56,916 - INFO - 
+Alpha-Cash-Stack-Model (Trench 2) Data Summary:
+2026-01-16 15:33:56,916 - INFO -   Data_selection  digitalLoanAccountId_count Application_date_min Application_date_max
+0       Dev_Test                       24849           2025-03-01           2025-09-23
+1      Dev_Train                       17439           2024-10-01           2025-02-28
+2026-01-16 15:34:01,402 - INFO - Alpha-Cash-Stack-Model (Trench 2) uploaded to BigQuery
+2026-01-16 15:34:01,402 - INFO - 
+Processing Alpha-Cash-Stack-Model - Trench 3...
+2026-01-16 15:34:04,507 - INFO - The shape of the dataframe is: (17937, 11)
+2026-01-16 15:34:06,218 - INFO - 
+Alpha-Cash-Stack-Model (Trench 3) Data Summary:
+2026-01-16 15:34:06,218 - INFO -   Data_selection  digitalLoanAccountId_count Application_date_min Application_date_max
+0       Dev_Test                       11563           2025-03-01           2025-09-23
+1      Dev_Train                        6374           2024-10-01           2025-02-28
+2026-01-16 15:34:10,231 - INFO - Alpha-Cash-Stack-Model (Trench 3) uploaded to BigQuery
+2026-01-16 15:34:10,231 - INFO - 
+Cash V1 models processing completed!
+2026-01-16 15:34:10,231 - INFO - 
+================================================================================
+2026-01-16 15:34:10,231 - INFO - All models processed successfully!
+2026-01-16 15:34:10,231 - INFO - ================================================================================

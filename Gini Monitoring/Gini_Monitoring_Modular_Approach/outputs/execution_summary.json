@@ -1,0 +1,79 @@
+{
+  "timestamp": "2026-01-29T06:22:48.499572",
+  "total_notebooks": 14,
+  "successful": 12,
+  "failed": 2,
+  "total_time_seconds": 78974.57725095749,
+  "results": [
+    {
+      "notebook": "CIC_SIL_Models",
+      "success": true,
+      "time": 2151.696789264679
+    },
+    {
+      "notebook": "Alpha-Cash-CIC-Model",
+      "success": true,
+      "time": 273.78615713119507
+    },
+    {
+      "notebook": "Alpha-Cash-Stack-Model",
+      "success": true,
+      "time": 283.2140130996704
+    },
+    {
+      "notebook": "Alpha_Cash_Stack_Model_Credo_Score",
+      "success": true,
+      "time": 295.2740604877472
+    },
+    {
+      "notebook": "alpha_stack_model_sil",
+      "success": true,
+      "time": 2653.593414068222
+    },
+    {
+      "notebook": "alpha_stack_model_sil_credo_score",
+      "success": true,
+      "time": 2398.0612137317657
+    },
+    {
+      "notebook": "Beta-Cash-AppScore-Model",
+      "success": true,
+      "time": 1567.8415987491608
+    },
+    {
+      "notebook": "Beta-Cash-Demo-Model",
+      "success": true,
+      "time": 243.48117995262146
+    },
+    {
+      "notebook": "Beta-Cash-Stack-Model",
+      "success": true,
+      "time": 297.76448011398315
+    },
+    {
+      "notebook": "Beta_Cash_Stack_Model_Credo_Score",
+      "success": true,
+      "time": 321.71420788764954
+    },
+    {
+      "notebook": "Beta_Sil_App_Score",
+      "success": true,
+      "time": 2656.8730161190033
+    },
+    {
+      "notebook": "Beta_SIL_Demo_Score",
+      "success": true,
+      "time": 3141.2914066314697
+    },
+    {
+      "notebook": "Beta_SIL_STACK_Score_Model",
+      "success": false,
+      "time": 4275
+    },
+    {
+      "notebook": "beta_stack_model_sil_credo_score",
+      "success": false,
+      "time": 4275
+    }
+  ]
+}

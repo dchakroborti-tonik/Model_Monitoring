@@ -1,6 +1,3 @@
-
-
-
 def csi_monitoring():
     # Import libraries
     import time
@@ -10,8 +7,8 @@ def csi_monitoring():
     import seaborn as sns
     from google.cloud import bigquery
     import os
-    client = bigquery.Client(project='prj-prod-dataplatform')
 
+    client = bigquery.Client(project="prj-prod-dataplatform")
 
     """Create a backup table"""
 
@@ -110,9 +107,9 @@ def csi_monitoring():
 
     """
 
-    cicscoredf = client.query(sq).to_dataframe(progress_bar_type='tqdm')
+    cicscoredf = client.query(sq).to_dataframe(progress_bar_type="tqdm")
 
-    cicscoredf['Application_month'][cicscoredf['dataselection'] == 'Test'].unique()
+    cicscoredf["Application_month"][cicscoredf["dataselection"] == "Test"].unique()
 
     """For Overall CSI calculation"""
 
@@ -131,11 +128,15 @@ def csi_monitoring():
         all_categories = set(train_dist.index) | set(test_dist.index)
 
         # Align distributions
-        train_dist_aligned = train_dist.reindex(all_categories, fill_value=0.0001)  # Small value to avoid division by zero
+        train_dist_aligned = train_dist.reindex(
+            all_categories, fill_value=0.0001
+        )  # Small value to avoid division by zero
         test_dist_aligned = test_dist.reindex(all_categories, fill_value=0.0001)
 
         # Calculate csi
-        csi_values = (test_dist_aligned - train_dist_aligned) * np.log(test_dist_aligned / train_dist_aligned)
+        csi_values = (test_dist_aligned - train_dist_aligned) * np.log(
+            test_dist_aligned / train_dist_aligned
+        )
         return csi_values.sum()
 
     def calculate_bin_csi(train_df, test_df, feature):
@@ -151,7 +152,9 @@ def csi_monitoring():
             DataFrame: csi results for each bin value
         """
         # Get all unique bin values across both datasets
-        all_bins = set(train_df[feature].dropna().unique()) | set(test_df[feature].dropna().unique())
+        all_bins = set(train_df[feature].dropna().unique()) | set(
+            test_df[feature].dropna().unique()
+        )
 
         # Results list for bin-level csi
         bin_csi_results = []
@@ -185,17 +188,21 @@ def csi_monitoring():
             if test_bin_pct < 0.0001:
                 test_bin_pct = 0.0001  # Avoid division by zero
 
-            bin_csi = (test_bin_pct - train_bin_pct) * np.log(test_bin_pct / train_bin_pct)
+            bin_csi = (test_bin_pct - train_bin_pct) * np.log(
+                test_bin_pct / train_bin_pct
+            )
 
             # Store result
-            bin_csi_results.append({
-                'feature': feature,
-                'bin_value': bin_value,
-                'train_pct': train_bin_pct,
-                'test_pct': test_bin_pct,
-                'bin_csi': bin_csi,
-                'feature_csi': overall_csi
-            })
+            bin_csi_results.append(
+                {
+                    "feature": feature,
+                    "bin_value": bin_value,
+                    "train_pct": train_bin_pct,
+                    "test_pct": test_bin_pct,
+                    "bin_csi": bin_csi,
+                    "feature_csi": overall_csi,
+                }
+            )
 
         return pd.DataFrame(bin_csi_results)
 
@@ -220,8 +227,8 @@ def csi_monitoring():
 
         # First, calculate overall csi for each bin
         overall_results = calculate_feature_bin_csi(df, feature_list)
-        overall_results['segment_type'] = 'Overall'
-        overall_results['segment_value'] = 'All'
+        overall_results["segment_type"] = "Overall"
+        overall_results["segment_value"] = "All"
         all_results.append(overall_results)
 
         # Then calculate csi for each segment column
@@ -239,14 +246,18 @@ def csi_monitoring():
 
                 # Skip if not enough data
                 if len(segment_df) < 50:  # Arbitrary threshold
-                    print(f"Skipping {segment_col}={segment_val} due to insufficient data ({len(segment_df)} rows).")
+                    print(
+                        f"Skipping {segment_col}={segment_val} due to insufficient data ({len(segment_df)} rows)."
+                    )
                     continue
 
                 # Calculate csi for this segment
                 try:
-                    segment_results = calculate_feature_bin_csi(segment_df, feature_list)
-                    segment_results['segment_type'] = segment_col
-                    segment_results['segment_value'] = segment_val
+                    segment_results = calculate_feature_bin_csi(
+                        segment_df, feature_list
+                    )
+                    segment_results["segment_type"] = segment_col
+                    segment_results["segment_value"] = segment_val
                     all_results.append(segment_results)
                 except Exception as e:
                     print(f"Error calculating csi for {segment_col}={segment_val}: {e}")
@@ -273,28 +284,30 @@ def csi_monitoring():
         df_copy = df.copy()
 
         # Separate train and test data
-        train_df = df_copy[df_copy['dataselection'] == 'Train']
-        test_df = df_copy[df_copy['dataselection'] == 'Test']
+        train_df = df_copy[df_copy["dataselection"] == "Train"]
+        test_df = df_copy[df_copy["dataselection"] == "Test"]
 
         # Skip if either dataset is empty
         if train_df.empty or test_df.empty:
-            print("Warning: Either train or test dataset is empty. Skipping csi calculation.")
+            print(
+                "Warning: Either train or test dataset is empty. Skipping csi calculation."
+            )
             return pd.DataFrame()
 
         # Handle Application_month based on its type
-        if isinstance(df_copy['Application_month'].iloc[0], str):
+        if isinstance(df_copy["Application_month"].iloc[0], str):
             # If it's a string in format 'YYYY-MM-DD', extract just 'YYYY-MM'
-            last_train_month_str = str(train_df['Application_month'].max())
+            last_train_month_str = str(train_df["Application_month"].max())
             if len(last_train_month_str) >= 7:  # Ensure we have at least YYYY-MM
                 last_train_month_str = last_train_month_str[:7]  # Extract YYYY-MM part
         else:
             # If it's already a datetime object
             try:
-                last_train_month = pd.to_datetime(train_df['Application_month'].max())
-                last_train_month_str = last_train_month.strftime('%Y-%m')
+                last_train_month = pd.to_datetime(train_df["Application_month"].max())
+                last_train_month_str = last_train_month.strftime("%Y-%m")
             except:
                 # Fallback if conversion fails
-                last_train_month_str = str(train_df['Application_month'].max())
+                last_train_month_str = str(train_df["Application_month"].max())
 
         # Store all bin-level csi results
         all_bin_results = []
@@ -302,26 +315,32 @@ def csi_monitoring():
         # Calculate distribution for each feature in the training set
         for feature in feature_list:
             if feature not in train_df.columns:
-                print(f"Warning: Feature {feature} not found in training data. Skipping.")
+                print(
+                    f"Warning: Feature {feature} not found in training data. Skipping."
+                )
                 continue
 
             # Calculate bin-level csi for the training set against itself (always 0)
             train_bins = train_df[feature].dropna().unique()
             for bin_value in train_bins:
-                all_bin_results.append({
-                    'Month': last_train_month_str,
-                    'feature': feature,
-                    'bin_value': bin_value,
-                    'DateCategory': 'a_Training',
-                    'train_pct': (train_df[feature] == bin_value).mean(),
-                    'test_pct': (train_df[feature] == bin_value).mean(),  # Same as train for training data
-                    'bin_csi': 0.0,  # csi against itself is 0
-                    'feature_csi': 0.0,  # Overall csi against itself is 0
-                    'account_count': train_df['digitalLoanAccountId'].nunique()
-                })
+                all_bin_results.append(
+                    {
+                        "Month": last_train_month_str,
+                        "feature": feature,
+                        "bin_value": bin_value,
+                        "DateCategory": "a_Training",
+                        "train_pct": (train_df[feature] == bin_value).mean(),
+                        "test_pct": (
+                            train_df[feature] == bin_value
+                        ).mean(),  # Same as train for training data
+                        "bin_csi": 0.0,  # csi against itself is 0
+                        "feature_csi": 0.0,  # Overall csi against itself is 0
+                        "account_count": train_df["digitalLoanAccountId"].nunique(),
+                    }
+                )
 
         # Get unique months from test set and sort them
-        test_months = sorted(test_df['Application_month'].unique())
+        test_months = sorted(test_df["Application_month"].unique())
 
         # Create mapping of months to prefixed labels (b, c, d, etc.)
         prefix_map = {}
@@ -343,10 +362,10 @@ def csi_monitoring():
             # Use the prefixed month string for sorting
             month_str = prefix_map[month]
 
-            month_df = test_df[test_df['Application_month'] == month]
+            month_df = test_df[test_df["Application_month"] == month]
 
             if not month_df.empty:
-                month_accounts = month_df['digitalLoanAccountId'].nunique()
+                month_accounts = month_df["digitalLoanAccountId"].nunique()
 
                 for feature in feature_list:
                     if feature not in month_df.columns:
@@ -355,12 +374,20 @@ def csi_monitoring():
                     # Calculate bin-level csi for this feature in this month
                     try:
                         # Get all unique bin values for this feature across train and test
-                        all_bins = set(train_df[feature].dropna().unique()) | set(month_df[feature].dropna().unique())
+                        all_bins = set(train_df[feature].dropna().unique()) | set(
+                            month_df[feature].dropna().unique()
+                        )
 
                         # Calculate overall feature csi for reference
-                        train_counts = train_df[feature].value_counts(dropna=True, normalize=True)
-                        test_counts = month_df[feature].value_counts(dropna=True, normalize=True)
-                        overall_csi = calculate_categorical_csi(train_counts, test_counts)
+                        train_counts = train_df[feature].value_counts(
+                            dropna=True, normalize=True
+                        )
+                        test_counts = month_df[feature].value_counts(
+                            dropna=True, normalize=True
+                        )
+                        overall_csi = calculate_categorical_csi(
+                            train_counts, test_counts
+                        )
 
                         # Calculate csi for each bin
                         for bin_value in all_bins:
@@ -375,85 +402,96 @@ def csi_monitoring():
                                 test_pct = 0.0001
 
                             # Calculate csi for this bin
-                            bin_csi = (test_pct - train_pct) * np.log(test_pct / train_pct)
+                            bin_csi = (test_pct - train_pct) * np.log(
+                                test_pct / train_pct
+                            )
 
                             # Store result
-                            all_bin_results.append({
-                                'Month': original_month_str,
-                                'MonthSortKey': month_str,
-                                'feature': feature,
-                                'bin_value': bin_value,
-                                'DateCategory': 'b_Monthly',
-                                'train_pct': train_pct,
-                                'test_pct': test_pct,
-                                'bin_csi': bin_csi,
-                                'feature_csi': overall_csi,
-                                'account_count': month_accounts
-                            })
+                            all_bin_results.append(
+                                {
+                                    "Month": original_month_str,
+                                    "MonthSortKey": month_str,
+                                    "feature": feature,
+                                    "bin_value": bin_value,
+                                    "DateCategory": "b_Monthly",
+                                    "train_pct": train_pct,
+                                    "test_pct": test_pct,
+                                    "bin_csi": bin_csi,
+                                    "feature_csi": overall_csi,
+                                    "account_count": month_accounts,
+                                }
+                            )
                     except Exception as e:
-                        print(f"Error calculating bin csi for {feature} in {month}: {e}")
+                        print(
+                            f"Error calculating bin csi for {feature} in {month}: {e}"
+                        )
 
         # Create the output DataFrame
         return pd.DataFrame(all_bin_results)
 
     # Features list
     feature_list = [
-        'cic_Personal_Loans_granted_contracts_amt_24M_bin',
-        'cic_cnt_active_contracts_bin',
-        'cic_vel_contract_nongranted_cnt_12on24_bin',
-        'cic_days_since_last_inquiry_bin',
-        'cic_max_amt_granted_24M_bin'
+        "cic_Personal_Loans_granted_contracts_amt_24M_bin",
+        "cic_cnt_active_contracts_bin",
+        "cic_vel_contract_nongranted_cnt_12on24_bin",
+        "cic_days_since_last_inquiry_bin",
+        "cic_max_amt_granted_24M_bin",
     ]
 
     # Define segment columns
-    segment_columns = ['ln_user_type', 'ln_prod_type', 'ln_os_type']
+    segment_columns = ["ln_user_type", "ln_prod_type", "ln_os_type"]
 
     # Calculate bin-level csi for overall and by segments
     bin_results = calculate_segmented_bin_csi(cicscoredf, feature_list, segment_columns)
 
-
     # Try to combine with s_apps_score results if they exist (continued)
     try:
         # First ensure the s_apps_score_output_df has the same structure
-        if 'MonthSortKey' not in s_apps_score_output_df.columns:
-            s_apps_score_output_df['MonthSortKey'] = s_apps_score_output_df['Month']
+        if "MonthSortKey" not in s_apps_score_output_df.columns:
+            s_apps_score_output_df["MonthSortKey"] = s_apps_score_output_df["Month"]
             # Update DateCategory with prefix
-            s_apps_score_output_df['DateCategory'] = s_apps_score_output_df['DateCategory'].apply(
-                lambda x: 'a_Training' if x == 'Training' else 'b_Monthly'
-            )
+            s_apps_score_output_df["DateCategory"] = s_apps_score_output_df[
+                "DateCategory"
+            ].apply(lambda x: "a_Training" if x == "Training" else "b_Monthly")
 
         # Add segment info to s_apps_score_output_df
-        s_apps_score_output_df['segment_type'] = 'Overall'
-        s_apps_score_output_df['segment_value'] = 'All'
+        s_apps_score_output_df["segment_type"] = "Overall"
+        s_apps_score_output_df["segment_value"] = "All"
 
         # Add bin_value column to s_apps_score_output_df (as 'All' for feature-level csi)
-        s_apps_score_output_df['bin_value'] = 'All'
+        s_apps_score_output_df["bin_value"] = "All"
 
         # Rename csivalues to feature_csi for consistency
-        if 'csivalues' in s_apps_score_output_df.columns:
-            s_apps_score_output_df = s_apps_score_output_df.rename(columns={'csivalues': 'feature_csi'})
+        if "csivalues" in s_apps_score_output_df.columns:
+            s_apps_score_output_df = s_apps_score_output_df.rename(
+                columns={"csivalues": "feature_csi"}
+            )
 
         # Add bin_csi column (same as feature_csi for feature-level csi)
-        if 'feature_csi' in s_apps_score_output_df.columns:
-            s_apps_score_output_df['bin_csi'] = s_apps_score_output_df['feature_csi']
+        if "feature_csi" in s_apps_score_output_df.columns:
+            s_apps_score_output_df["bin_csi"] = s_apps_score_output_df["feature_csi"]
 
         # Replace 'scorename' with 'feature' for consistency
-        if 'scorename' in s_apps_score_output_df.columns:
-            s_apps_score_output_df['feature'] = s_apps_score_output_df['feature'].fillna(s_apps_score_output_df['scorename'])
-            s_apps_score_output_df = s_apps_score_output_df.drop('scorename', axis=1)
+        if "scorename" in s_apps_score_output_df.columns:
+            s_apps_score_output_df["feature"] = s_apps_score_output_df[
+                "feature"
+            ].fillna(s_apps_score_output_df["scorename"])
+            s_apps_score_output_df = s_apps_score_output_df.drop("scorename", axis=1)
 
         # Combine with bin_results
-        combined_results = pd.concat([s_apps_score_output_df, bin_results], ignore_index=True)
+        combined_results = pd.concat(
+            [s_apps_score_output_df, bin_results], ignore_index=True
+        )
     except NameError:
         # If s_apps_score_output_df doesn't exist, just use bin_results
         combined_results = bin_results
 
     # Sort by segment_type, segment_value, feature, bin_value, and MonthSortKey
-    sort_columns = ['segment_type', 'segment_value', 'feature', 'bin_value']
-    if 'MonthSortKey' in combined_results.columns:
-        sort_columns.append('MonthSortKey')
+    sort_columns = ["segment_type", "segment_value", "feature", "bin_value"]
+    if "MonthSortKey" in combined_results.columns:
+        sort_columns.append("MonthSortKey")
     else:
-        sort_columns.append('Month')
+        sort_columns.append("Month")
 
     combined_results = combined_results.sort_values(sort_columns)
 
@@ -464,26 +502,34 @@ def csi_monitoring():
     # Function to create pivot table for a given segment and feature
     def create_bin_pivot(data, segment_type, segment_value, feature=None):
         # Filter by segment
-        segment_data = data[(data['segment_type'] == segment_type) &
-                        (data['segment_value'] == segment_value)]
+        segment_data = data[
+            (data["segment_type"] == segment_type)
+            & (data["segment_value"] == segment_value)
+        ]
 
         # Further filter by feature if specified
         if feature:
-            segment_data = segment_data[segment_data['feature'] == feature]
+            segment_data = segment_data[segment_data["feature"] == feature]
 
         # Create pivot table - rows are bin values, columns are months
         pivot = segment_data.pivot_table(
-            index=['feature', 'bin_value'],
-            columns=['MonthSortKey'] if 'MonthSortKey' in segment_data.columns else ['Month'],
-            values='bin_csi',
-            aggfunc='first'
+            index=["feature", "bin_value"],
+            columns=(
+                ["MonthSortKey"]
+                if "MonthSortKey" in segment_data.columns
+                else ["Month"]
+            ),
+            values="bin_csi",
+            aggfunc="first",
         )
 
         return pivot
 
     # Create bin pivot tables for overall and by segments
-    unique_segment_combos = combined_results[['segment_type', 'segment_value']].drop_duplicates()
-    unique_features = combined_results['feature'].unique()
+    unique_segment_combos = combined_results[
+        ["segment_type", "segment_value"]
+    ].drop_duplicates()
+    unique_features = combined_results["feature"].unique()
 
     # # Question - do we need this Excel file?
     # # Create Excel writer to save all pivots in one file
@@ -544,60 +590,71 @@ def csi_monitoring():
     #             pivot.to_excel(writer, sheet_name=sheet_name)
     #             print(f"Created pivot for {segment_type}={segment_value}, feature={feature}")
 
-
     # Calculate bin contribution to total csi
     summary_data = []
 
-    for segment_type in combined_results['segment_type'].unique():
-        for segment_value in combined_results[combined_results['segment_type'] == segment_type]['segment_value'].unique():
-            for feature in combined_results['feature'].unique():
+    for segment_type in combined_results["segment_type"].unique():
+        for segment_value in combined_results[
+            combined_results["segment_type"] == segment_type
+        ]["segment_value"].unique():
+            for feature in combined_results["feature"].unique():
                 # Get data for this segment and feature
                 segment_feature_data = combined_results[
-                    (combined_results['segment_type'] == segment_type) &
-                    (combined_results['segment_value'] == segment_value) &
-                    (combined_results['feature'] == feature)
+                    (combined_results["segment_type"] == segment_type)
+                    & (combined_results["segment_value"] == segment_value)
+                    & (combined_results["feature"] == feature)
                 ]
 
                 if segment_feature_data.empty:
                     continue
 
                 # Get unique months
-                months = segment_feature_data['Month'].unique()
+                months = segment_feature_data["Month"].unique()
                 print(months)
 
                 for month in months:
-                    month_data = segment_feature_data[segment_feature_data['Month'] == month]
+                    month_data = segment_feature_data[
+                        segment_feature_data["Month"] == month
+                    ]
 
                     # Get feature csi (should be same for all bins in this feature/month/segment)
-                    feature_csi = month_data['feature_csi'].iloc[0] if not month_data.empty else 0
+                    feature_csi = (
+                        month_data["feature_csi"].iloc[0] if not month_data.empty else 0
+                    )
 
                     # Get top contributing bins
-                    if not month_data.empty and 'bin_csi' in month_data.columns:
+                    if not month_data.empty and "bin_csi" in month_data.columns:
                         # Sort by absolute bin_csi value to get top contributors
-                        top_bins = month_data.sort_values('bin_csi', key=abs, ascending=False)
+                        top_bins = month_data.sort_values(
+                            "bin_csi", key=abs, ascending=False
+                        )
 
                         # Take top 3 bins
                         for i, (_, bin_row) in enumerate(top_bins.iterrows()):
                             if i >= 3:  # Limit to top 3
                                 break
 
-                            bin_value = bin_row['bin_value']
-                            bin_csi = bin_row['bin_csi']
+                            bin_value = bin_row["bin_value"]
+                            bin_csi = bin_row["bin_csi"]
 
                             # Calculate contribution percentage
-                            pct_contribution = (bin_csi / feature_csi * 100) if feature_csi != 0 else 0
+                            pct_contribution = (
+                                (bin_csi / feature_csi * 100) if feature_csi != 0 else 0
+                            )
 
-                            summary_data.append({
-                                'segment_type': segment_type,
-                                'segment_value': segment_value,
-                                'feature': feature,
-                                'Month': month,
-                                'feature_csi': feature_csi,
-                                'bin_value': bin_value,
-                                'bin_csi': bin_csi,
-                                'pct_contribution': pct_contribution,
-                                'rank': i + 1
-                            })
+                            summary_data.append(
+                                {
+                                    "segment_type": segment_type,
+                                    "segment_value": segment_value,
+                                    "feature": feature,
+                                    "Month": month,
+                                    "feature_csi": feature_csi,
+                                    "bin_value": bin_value,
+                                    "bin_csi": bin_csi,
+                                    "pct_contribution": pct_contribution,
+                                    "rank": i + 1,
+                                }
+                            )
 
     # Question - do we need this Excel file?
     # Create summary DataFrame
@@ -606,10 +663,10 @@ def csi_monitoring():
 
         # Pivot to get a table with top contributors
         contribution_pivot = summary_df.pivot_table(
-            index=['segment_type', 'segment_value', 'feature', 'Month', 'feature_csi'],
-            columns=['rank'],
-            values=['bin_value', 'bin_csi', 'pct_contribution'],
-            aggfunc='first'
+            index=["segment_type", "segment_value", "feature", "Month", "feature_csi"],
+            columns=["rank"],
+            values=["bin_value", "bin_csi", "pct_contribution"],
+            aggfunc="first",
         )
 
         # Save to Excel
@@ -621,16 +678,22 @@ def csi_monitoring():
 
     combined_results
 
-    combined_results['Month'] = combined_results['Month'].replace('2024-09', '2024-06-2024-09')
-    combined_results['MonthSortKey'] = combined_results['MonthSortKey'].fillna('a_2024-06-2024-09')
-    combined_results['Month'] = combined_results['Month'].apply(lambda x: x.split(' 00:00:00')[0] if'00:00:00' in x else x)
-    combined_results['scorename'] = 'CIC_Score'
-    combined_results['Modelname'] = 'SIL CIC Model'
-    combined_results['Description'] = 'Train period from 2024-06 to 2024-09'
-    combined_results.sort_values(by='Month', ascending=False)
+    combined_results["Month"] = combined_results["Month"].replace(
+        "2024-09", "2024-06-2024-09"
+    )
+    combined_results["MonthSortKey"] = combined_results["MonthSortKey"].fillna(
+        "a_2024-06-2024-09"
+    )
+    combined_results["Month"] = combined_results["Month"].apply(
+        lambda x: x.split(" 00:00:00")[0] if "00:00:00" in x else x
+    )
+    combined_results["scorename"] = "CIC_Score"
+    combined_results["Modelname"] = "SIL CIC Model"
+    combined_results["Description"] = "Train period from 2024-06 to 2024-09"
+    combined_results.sort_values(by="Month", ascending=False)
 
-    dataset_id = 'dap_ds_poweruser_playground'
-    table_id = 'F_CSI_MODEL_FEATURES_BIN_TAB_new' # Changes
+    dataset_id = "dap_ds_poweruser_playground"
+    table_id = "F_CSI_MODEL_FEATURES_BIN_TAB_new"  # Changes
     # Define the table schema as per your DataFrame columns
     schema = [
         bigquery.SchemaField("Month", "string"),
@@ -648,15 +711,17 @@ def csi_monitoring():
         bigquery.SchemaField("scorename", "string"),
         bigquery.SchemaField("Modelname", "string"),
         bigquery.SchemaField("Description", "string"),
-        ]
+    ]
     # Create the dataset reference
     dataset_ref = client.dataset(dataset_id)
     # Define the table reference
     table_ref = dataset_ref.table(table_id)
     # Configure the job to overwrite the table if it already exists
-    job_config = bigquery.LoadJobConfig(schema = schema)
+    job_config = bigquery.LoadJobConfig(schema=schema)
     # Load the DataFrame into BigQuery
-    job = client.load_table_from_dataframe(combined_results, table_ref, job_config=job_config)
+    job = client.load_table_from_dataframe(
+        combined_results, table_ref, job_config=job_config
+    )
     # Wait for the job to complete
     job.result()
 
@@ -713,7 +778,7 @@ def csi_monitoring():
     select * from sildemo;
     """
 
-    sildemodf = client.query(sq).to_dataframe(progress_bar_type='tqdm')
+    sildemodf = client.query(sq).to_dataframe(progress_bar_type="tqdm")
 
     def calculate_categorical_csi(train_dist, test_dist):
         """
@@ -730,11 +795,15 @@ def csi_monitoring():
         all_categories = set(train_dist.index) | set(test_dist.index)
 
         # Align distributions
-        train_dist_aligned = train_dist.reindex(all_categories, fill_value=0.0001)  # Small value to avoid division by zero
+        train_dist_aligned = train_dist.reindex(
+            all_categories, fill_value=0.0001
+        )  # Small value to avoid division by zero
         test_dist_aligned = test_dist.reindex(all_categories, fill_value=0.0001)
 
         # Calculate csi
-        csi_values = (test_dist_aligned - train_dist_aligned) * np.log(test_dist_aligned / train_dist_aligned)
+        csi_values = (test_dist_aligned - train_dist_aligned) * np.log(
+            test_dist_aligned / train_dist_aligned
+        )
         return csi_values.sum()
 
     def calculate_bin_csi(train_df, test_df, feature):
@@ -750,7 +819,9 @@ def csi_monitoring():
             DataFrame: csi results for each bin value
         """
         # Get all unique bin values across both datasets
-        all_bins = set(train_df[feature].dropna().unique()) | set(test_df[feature].dropna().unique())
+        all_bins = set(train_df[feature].dropna().unique()) | set(
+            test_df[feature].dropna().unique()
+        )
 
         # Results list for bin-level csi
         bin_csi_results = []
@@ -784,17 +855,21 @@ def csi_monitoring():
             if test_bin_pct < 0.0001:
                 test_bin_pct = 0.0001  # Avoid division by zero
 
-            bin_csi = (test_bin_pct - train_bin_pct) * np.log(test_bin_pct / train_bin_pct)
+            bin_csi = (test_bin_pct - train_bin_pct) * np.log(
+                test_bin_pct / train_bin_pct
+            )
 
             # Store result
-            bin_csi_results.append({
-                'feature': feature,
-                'bin_value': bin_value,
-                'train_pct': train_bin_pct,
-                'test_pct': test_bin_pct,
-                'bin_csi': bin_csi,
-                'feature_csi': overall_csi
-            })
+            bin_csi_results.append(
+                {
+                    "feature": feature,
+                    "bin_value": bin_value,
+                    "train_pct": train_bin_pct,
+                    "test_pct": test_bin_pct,
+                    "bin_csi": bin_csi,
+                    "feature_csi": overall_csi,
+                }
+            )
 
         return pd.DataFrame(bin_csi_results)
 
@@ -819,8 +894,8 @@ def csi_monitoring():
 
         # First, calculate overall csi for each bin
         overall_results = calculate_feature_bin_csi(df, feature_list)
-        overall_results['segment_type'] = 'Overall'
-        overall_results['segment_value'] = 'All'
+        overall_results["segment_type"] = "Overall"
+        overall_results["segment_value"] = "All"
         all_results.append(overall_results)
 
         # Then calculate csi for each segment column
@@ -838,14 +913,18 @@ def csi_monitoring():
 
                 # Skip if not enough data
                 if len(segment_df) < 50:  # Arbitrary threshold
-                    print(f"Skipping {segment_col}={segment_val} due to insufficient data ({len(segment_df)} rows).")
+                    print(
+                        f"Skipping {segment_col}={segment_val} due to insufficient data ({len(segment_df)} rows)."
+                    )
                     continue
 
                 # Calculate csi for this segment
                 try:
-                    segment_results = calculate_feature_bin_csi(segment_df, feature_list)
-                    segment_results['segment_type'] = segment_col
-                    segment_results['segment_value'] = segment_val
+                    segment_results = calculate_feature_bin_csi(
+                        segment_df, feature_list
+                    )
+                    segment_results["segment_type"] = segment_col
+                    segment_results["segment_value"] = segment_val
                     all_results.append(segment_results)
                 except Exception as e:
                     print(f"Error calculating csi for {segment_col}={segment_val}: {e}")
@@ -872,28 +951,30 @@ def csi_monitoring():
         df_copy = df.copy()
 
         # Separate train and test data
-        train_df = df_copy[df_copy['dataselection'] == 'Train']
-        test_df = df_copy[df_copy['dataselection'] == 'Test']
+        train_df = df_copy[df_copy["dataselection"] == "Train"]
+        test_df = df_copy[df_copy["dataselection"] == "Test"]
 
         # Skip if either dataset is empty
         if train_df.empty or test_df.empty:
-            print("Warning: Either train or test dataset is empty. Skipping csi calculation.")
+            print(
+                "Warning: Either train or test dataset is empty. Skipping csi calculation."
+            )
             return pd.DataFrame()
 
         # Handle Application_month based on its type
-        if isinstance(df_copy['Application_month'].iloc[0], str):
+        if isinstance(df_copy["Application_month"].iloc[0], str):
             # If it's a string in format 'YYYY-MM-DD', extract just 'YYYY-MM'
-            last_train_month_str = str(train_df['Application_month'].max())
+            last_train_month_str = str(train_df["Application_month"].max())
             if len(last_train_month_str) >= 7:  # Ensure we have at least YYYY-MM
                 last_train_month_str = last_train_month_str[:7]  # Extract YYYY-MM part
         else:
             # If it's already a datetime object
             try:
-                last_train_month = pd.to_datetime(train_df['Application_month'].max())
-                last_train_month_str = last_train_month.strftime('%Y-%m')
+                last_train_month = pd.to_datetime(train_df["Application_month"].max())
+                last_train_month_str = last_train_month.strftime("%Y-%m")
             except:
                 # Fallback if conversion fails
-                last_train_month_str = str(train_df['Application_month'].max())
+                last_train_month_str = str(train_df["Application_month"].max())
 
         # Store all bin-level csi results
         all_bin_results = []
@@ -901,26 +982,32 @@ def csi_monitoring():
         # Calculate distribution for each feature in the training set
         for feature in feature_list:
             if feature not in train_df.columns:
-                print(f"Warning: Feature {feature} not found in training data. Skipping.")
+                print(
+                    f"Warning: Feature {feature} not found in training data. Skipping."
+                )
                 continue
 
             # Calculate bin-level csi for the training set against itself (always 0)
             train_bins = train_df[feature].dropna().unique()
             for bin_value in train_bins:
-                all_bin_results.append({
-                    'Month': last_train_month_str,
-                    'feature': feature,
-                    'bin_value': bin_value,
-                    'DateCategory': 'a_Training',
-                    'train_pct': (train_df[feature] == bin_value).mean(),
-                    'test_pct': (train_df[feature] == bin_value).mean(),  # Same as train for training data
-                    'bin_csi': 0.0,  # csi against itself is 0
-                    'feature_csi': 0.0,  # Overall csi against itself is 0
-                    'account_count': train_df['digitalLoanAccountId'].nunique()
-                })
+                all_bin_results.append(
+                    {
+                        "Month": last_train_month_str,
+                        "feature": feature,
+                        "bin_value": bin_value,
+                        "DateCategory": "a_Training",
+                        "train_pct": (train_df[feature] == bin_value).mean(),
+                        "test_pct": (
+                            train_df[feature] == bin_value
+                        ).mean(),  # Same as train for training data
+                        "bin_csi": 0.0,  # csi against itself is 0
+                        "feature_csi": 0.0,  # Overall csi against itself is 0
+                        "account_count": train_df["digitalLoanAccountId"].nunique(),
+                    }
+                )
 
         # Get unique months from test set and sort them
-        test_months = sorted(test_df['Application_month'].unique())
+        test_months = sorted(test_df["Application_month"].unique())
 
         # Create mapping of months to prefixed labels (b, c, d, etc.)
         prefix_map = {}
@@ -942,10 +1029,10 @@ def csi_monitoring():
             # Use the prefixed month string for sorting
             month_str = prefix_map[month]
 
-            month_df = test_df[test_df['Application_month'] == month]
+            month_df = test_df[test_df["Application_month"] == month]
 
             if not month_df.empty:
-                month_accounts = month_df['digitalLoanAccountId'].nunique()
+                month_accounts = month_df["digitalLoanAccountId"].nunique()
 
                 for feature in feature_list:
                     if feature not in month_df.columns:
@@ -954,12 +1041,20 @@ def csi_monitoring():
                     # Calculate bin-level csi for this feature in this month
                     try:
                         # Get all unique bin values for this feature across train and test
-                        all_bins = set(train_df[feature].dropna().unique()) | set(month_df[feature].dropna().unique())
+                        all_bins = set(train_df[feature].dropna().unique()) | set(
+                            month_df[feature].dropna().unique()
+                        )
 
                         # Calculate overall feature csi for reference
-                        train_counts = train_df[feature].value_counts(dropna=True, normalize=True)
-                        test_counts = month_df[feature].value_counts(dropna=True, normalize=True)
-                        overall_csi = calculate_categorical_csi(train_counts, test_counts)
+                        train_counts = train_df[feature].value_counts(
+                            dropna=True, normalize=True
+                        )
+                        test_counts = month_df[feature].value_counts(
+                            dropna=True, normalize=True
+                        )
+                        overall_csi = calculate_categorical_csi(
+                            train_counts, test_counts
+                        )
 
                         # Calculate csi for each bin
                         for bin_value in all_bins:
@@ -974,86 +1069,96 @@ def csi_monitoring():
                                 test_pct = 0.0001
 
                             # Calculate csi for this bin
-                            bin_csi = (test_pct - train_pct) * np.log(test_pct / train_pct)
+                            bin_csi = (test_pct - train_pct) * np.log(
+                                test_pct / train_pct
+                            )
 
                             # Store result
-                            all_bin_results.append({
-                                'Month': original_month_str,
-                                'MonthSortKey': month_str,
-                                'feature': feature,
-                                'bin_value': bin_value,
-                                'DateCategory': 'b_Monthly',
-                                'train_pct': train_pct,
-                                'test_pct': test_pct,
-                                'bin_csi': bin_csi,
-                                'feature_csi': overall_csi,
-                                'account_count': month_accounts
-                            })
+                            all_bin_results.append(
+                                {
+                                    "Month": original_month_str,
+                                    "MonthSortKey": month_str,
+                                    "feature": feature,
+                                    "bin_value": bin_value,
+                                    "DateCategory": "b_Monthly",
+                                    "train_pct": train_pct,
+                                    "test_pct": test_pct,
+                                    "bin_csi": bin_csi,
+                                    "feature_csi": overall_csi,
+                                    "account_count": month_accounts,
+                                }
+                            )
                     except Exception as e:
-                        print(f"Error calculating bin csi for {feature} in {month}: {e}")
+                        print(
+                            f"Error calculating bin csi for {feature} in {month}: {e}"
+                        )
 
         # Create the output DataFrame
         return pd.DataFrame(all_bin_results)
 
     # Features list
     feature_list = [
-        'beta_de_ln_vas_opted_flag_bin',
-        'beta_de_ln_doc_type_rolled_bin',
-        'beta_de_ln_marital_status_bin',
-        'beta_de_ln_age_bin',
-        'beta_de_ln_ref2_type_bin'
+        "beta_de_ln_vas_opted_flag_bin",
+        "beta_de_ln_doc_type_rolled_bin",
+        "beta_de_ln_marital_status_bin",
+        "beta_de_ln_age_bin",
+        "beta_de_ln_ref2_type_bin",
     ]
 
     # Define segment columns
-    segment_columns = ['ln_user_type', 'ln_prod_type', 'ln_os_type']
+    segment_columns = ["ln_user_type", "ln_prod_type", "ln_os_type"]
 
     # Calculate bin-level csi for overall and by segments
     bin_results = calculate_segmented_bin_csi(sildemodf, feature_list, segment_columns)
 
-
-
     # Try to combine with s_apps_score results if they exist (continued)
     try:
         # First ensure the s_apps_score_output_df has the same structure
-        if 'MonthSortKey' not in s_apps_score_output_df.columns:
-            s_apps_score_output_df['MonthSortKey'] = s_apps_score_output_df['Month']
+        if "MonthSortKey" not in s_apps_score_output_df.columns:
+            s_apps_score_output_df["MonthSortKey"] = s_apps_score_output_df["Month"]
             # Update DateCategory with prefix
-            s_apps_score_output_df['DateCategory'] = s_apps_score_output_df['DateCategory'].apply(
-                lambda x: 'a_Training' if x == 'Training' else 'b_Monthly'
-            )
+            s_apps_score_output_df["DateCategory"] = s_apps_score_output_df[
+                "DateCategory"
+            ].apply(lambda x: "a_Training" if x == "Training" else "b_Monthly")
 
         # Add segment info to s_apps_score_output_df
-        s_apps_score_output_df['segment_type'] = 'Overall'
-        s_apps_score_output_df['segment_value'] = 'All'
+        s_apps_score_output_df["segment_type"] = "Overall"
+        s_apps_score_output_df["segment_value"] = "All"
 
         # Add bin_value column to s_apps_score_output_df (as 'All' for feature-level csi)
-        s_apps_score_output_df['bin_value'] = 'All'
+        s_apps_score_output_df["bin_value"] = "All"
 
         # Rename csivalues to feature_csi for consistency
-        if 'csivalues' in s_apps_score_output_df.columns:
-            s_apps_score_output_df = s_apps_score_output_df.rename(columns={'csivalues': 'feature_csi'})
+        if "csivalues" in s_apps_score_output_df.columns:
+            s_apps_score_output_df = s_apps_score_output_df.rename(
+                columns={"csivalues": "feature_csi"}
+            )
 
         # Add bin_csi column (same as feature_csi for feature-level csi)
-        if 'feature_csi' in s_apps_score_output_df.columns:
-            s_apps_score_output_df['bin_csi'] = s_apps_score_output_df['feature_csi']
+        if "feature_csi" in s_apps_score_output_df.columns:
+            s_apps_score_output_df["bin_csi"] = s_apps_score_output_df["feature_csi"]
 
         # Replace 'scorename' with 'feature' for consistency
-        if 'scorename' in s_apps_score_output_df.columns:
-            s_apps_score_output_df['feature'] = s_apps_score_output_df['feature'].fillna(s_apps_score_output_df['scorename'])
-            s_apps_score_output_df = s_apps_score_output_df.drop('scorename', axis=1)
+        if "scorename" in s_apps_score_output_df.columns:
+            s_apps_score_output_df["feature"] = s_apps_score_output_df[
+                "feature"
+            ].fillna(s_apps_score_output_df["scorename"])
+            s_apps_score_output_df = s_apps_score_output_df.drop("scorename", axis=1)
 
         # Combine with bin_results
-        combined_results = pd.concat([s_apps_score_output_df, bin_results], ignore_index=True)
+        combined_results = pd.concat(
+            [s_apps_score_output_df, bin_results], ignore_index=True
+        )
     except NameError:
         # If s_apps_score_output_df doesn't exist, just use bin_results
         combined_results = bin_results
 
     # Sort by segment_type, segment_value, feature, bin_value, and MonthSortKey
-    sort_columns = ['segment_type', 'segment_value', 'feature', 'bin_value']
-    if 'MonthSortKey' in combined_results.columns:
-        sort_columns.append('MonthSortKey')
+    sort_columns = ["segment_type", "segment_value", "feature", "bin_value"]
+    if "MonthSortKey" in combined_results.columns:
+        sort_columns.append("MonthSortKey")
     else:
-        sort_columns.append('Month')
+        sort_columns.append("Month")
 
     combined_results = combined_results.sort_values(sort_columns)
 
@@ -1061,30 +1166,37 @@ def csi_monitoring():
     # Save the detailed bin-level results
     # combined_results.to_csv('bin_level_csi_results_sildemo.csv', index=False)
 
-
     # Function to create pivot table for a given segment and feature
     def create_bin_pivot(data, segment_type, segment_value, feature=None):
         # Filter by segment
-        segment_data = data[(data['segment_type'] == segment_type) &
-                        (data['segment_value'] == segment_value)]
+        segment_data = data[
+            (data["segment_type"] == segment_type)
+            & (data["segment_value"] == segment_value)
+        ]
 
         # Further filter by feature if specified
         if feature:
-            segment_data = segment_data[segment_data['feature'] == feature]
+            segment_data = segment_data[segment_data["feature"] == feature]
 
         # Create pivot table - rows are bin values, columns are months
         pivot = segment_data.pivot_table(
-            index=['feature', 'bin_value'],
-            columns=['MonthSortKey'] if 'MonthSortKey' in segment_data.columns else ['Month'],
-            values='bin_csi',
-            aggfunc='first'
+            index=["feature", "bin_value"],
+            columns=(
+                ["MonthSortKey"]
+                if "MonthSortKey" in segment_data.columns
+                else ["Month"]
+            ),
+            values="bin_csi",
+            aggfunc="first",
         )
 
         return pivot
 
     # Create bin pivot tables for overall and by segments
-    unique_segment_combos = combined_results[['segment_type', 'segment_value']].drop_duplicates()
-    unique_features = combined_results['feature'].unique()
+    unique_segment_combos = combined_results[
+        ["segment_type", "segment_value"]
+    ].drop_duplicates()
+    unique_features = combined_results["feature"].unique()
 
     # Question - do we need this Excel file?
     # Create Excel writer to save all pivots in one file
@@ -1092,7 +1204,6 @@ def csi_monitoring():
     #     # First, create overall pivot with all features and bins
     #     overall_pivot = create_bin_pivot(combined_results, 'Overall', 'All')
     #     overall_pivot.to_excel(writer, sheet_name='Overall_All_Features')
-
 
     #     # Create separate pivot for each feature (across all segments)
     #     for feature in unique_features:
@@ -1145,60 +1256,70 @@ def csi_monitoring():
     #             pivot.to_excel(writer, sheet_name=sheet_name)
     #             print(f"Created pivot for {segment_type}={segment_value}, feature={feature}")
 
-
-
     # Calculate bin contribution to total csi
     summary_data = []
 
-    for segment_type in combined_results['segment_type'].unique():
-        for segment_value in combined_results[combined_results['segment_type'] == segment_type]['segment_value'].unique():
-            for feature in combined_results['feature'].unique():
+    for segment_type in combined_results["segment_type"].unique():
+        for segment_value in combined_results[
+            combined_results["segment_type"] == segment_type
+        ]["segment_value"].unique():
+            for feature in combined_results["feature"].unique():
                 # Get data for this segment and feature
                 segment_feature_data = combined_results[
-                    (combined_results['segment_type'] == segment_type) &
-                    (combined_results['segment_value'] == segment_value) &
-                    (combined_results['feature'] == feature)
+                    (combined_results["segment_type"] == segment_type)
+                    & (combined_results["segment_value"] == segment_value)
+                    & (combined_results["feature"] == feature)
                 ]
 
                 if segment_feature_data.empty:
                     continue
 
                 # Get unique months
-                months = segment_feature_data['Month'].unique()
+                months = segment_feature_data["Month"].unique()
 
                 for month in months:
-                    month_data = segment_feature_data[segment_feature_data['Month'] == month]
+                    month_data = segment_feature_data[
+                        segment_feature_data["Month"] == month
+                    ]
 
                     # Get feature csi (should be same for all bins in this feature/month/segment)
-                    feature_csi = month_data['feature_csi'].iloc[0] if not month_data.empty else 0
+                    feature_csi = (
+                        month_data["feature_csi"].iloc[0] if not month_data.empty else 0
+                    )
 
                     # Get top contributing bins
-                    if not month_data.empty and 'bin_csi' in month_data.columns:
+                    if not month_data.empty and "bin_csi" in month_data.columns:
                         # Sort by absolute bin_csi value to get top contributors
-                        top_bins = month_data.sort_values('bin_csi', key=abs, ascending=False)
+                        top_bins = month_data.sort_values(
+                            "bin_csi", key=abs, ascending=False
+                        )
 
                         # Take top 3 bins
                         for i, (_, bin_row) in enumerate(top_bins.iterrows()):
                             if i >= 3:  # Limit to top 3
                                 break
 
-                            bin_value = bin_row['bin_value']
-                            bin_csi = bin_row['bin_csi']
+                            bin_value = bin_row["bin_value"]
+                            bin_csi = bin_row["bin_csi"]
 
                             # Calculate contribution percentage
-                            pct_contribution = (bin_csi / feature_csi * 100) if feature_csi != 0 else 0
+                            pct_contribution = (
+                                (bin_csi / feature_csi * 100) if feature_csi != 0 else 0
+                            )
 
-                            summary_data.append({
-                                'segment_type': segment_type,
-                                'segment_value': segment_value,
-                                'feature': feature,
-                                'Month': month,
-                                'feature_csi': feature_csi,
-                                'bin_value': bin_value,
-                                'bin_csi': bin_csi,
-                                'pct_contribution': pct_contribution,
-                                'rank': i + 1
-                            })
+                            summary_data.append(
+                                {
+                                    "segment_type": segment_type,
+                                    "segment_value": segment_value,
+                                    "feature": feature,
+                                    "Month": month,
+                                    "feature_csi": feature_csi,
+                                    "bin_value": bin_value,
+                                    "bin_csi": bin_csi,
+                                    "pct_contribution": pct_contribution,
+                                    "rank": i + 1,
+                                }
+                            )
 
     # Create summary DataFrame
     if summary_data:
@@ -1206,10 +1327,10 @@ def csi_monitoring():
 
         # Pivot to get a table with top contributors
         contribution_pivot = summary_df.pivot_table(
-            index=['segment_type', 'segment_value', 'feature', 'Month', 'feature_csi'],
-            columns=['rank'],
-            values=['bin_value', 'bin_csi', 'pct_contribution'],
-            aggfunc='first'
+            index=["segment_type", "segment_value", "feature", "Month", "feature_csi"],
+            columns=["rank"],
+            values=["bin_value", "bin_csi", "pct_contribution"],
+            aggfunc="first",
         )
 
         # Question - do we need this Excel file?
@@ -1219,18 +1340,24 @@ def csi_monitoring():
     else:
         print("No data available for bin contribution summary")
 
-    combined_results[['Month','MonthSortKey']].value_counts(dropna=False)
+    combined_results[["Month", "MonthSortKey"]].value_counts(dropna=False)
 
-    combined_results['Month'] = combined_results['Month'].replace('2024-06', '2023-07-2024-06')
-    combined_results['MonthSortKey'] = combined_results['MonthSortKey'].fillna('a_2023-07-2024-06')
-    combined_results['Month'] = combined_results['Month'].apply(lambda x: x.split(' 00:00:00')[0] if'00:00:00' in x else x)
-    combined_results['scorename'] = 'beta_demo_score'
-    combined_results['Modelname'] = 'SIL Beta Demo'
-    combined_results['Description'] = 'Train period from 2023-07 to 2024-06'
+    combined_results["Month"] = combined_results["Month"].replace(
+        "2024-06", "2023-07-2024-06"
+    )
+    combined_results["MonthSortKey"] = combined_results["MonthSortKey"].fillna(
+        "a_2023-07-2024-06"
+    )
+    combined_results["Month"] = combined_results["Month"].apply(
+        lambda x: x.split(" 00:00:00")[0] if "00:00:00" in x else x
+    )
+    combined_results["scorename"] = "beta_demo_score"
+    combined_results["Modelname"] = "SIL Beta Demo"
+    combined_results["Description"] = "Train period from 2023-07 to 2024-06"
     combined_results
 
-    dataset_id = 'dap_ds_poweruser_playground'
-    table_id = 'F_CSI_MODEL_FEATURES_BIN_TAB_new' # Changes
+    dataset_id = "dap_ds_poweruser_playground"
+    table_id = "F_CSI_MODEL_FEATURES_BIN_TAB_new"  # Changes
     # Define the table schema as per your DataFrame columns
     schema = [
         bigquery.SchemaField("Month", "string"),
@@ -1248,15 +1375,17 @@ def csi_monitoring():
         bigquery.SchemaField("scorename", "string"),
         bigquery.SchemaField("Modelname", "string"),
         bigquery.SchemaField("Description", "string"),
-        ]
+    ]
     # Create the dataset reference
     dataset_ref = client.dataset(dataset_id)
     # Define the table reference
     table_ref = dataset_ref.table(table_id)
     # Configure the job to overwrite the table if it already exists
-    job_config = bigquery.LoadJobConfig(schema = schema)
+    job_config = bigquery.LoadJobConfig(schema=schema)
     # Load the DataFrame into BigQuery
-    job = client.load_table_from_dataframe(combined_results, table_ref, job_config=job_config)
+    job = client.load_table_from_dataframe(
+        combined_results, table_ref, job_config=job_config
+    )
     # Wait for the job to complete
     job.result()
     print(f"Table {table_id} created in dataset {dataset_id}.")
@@ -1345,7 +1474,7 @@ def csi_monitoring():
 
     """
 
-    appscoredf = client.query(sq).to_dataframe(progress_bar_type='tqdm')
+    appscoredf = client.query(sq).to_dataframe(progress_bar_type="tqdm")
 
     def calculate_categorical_csi(train_dist, test_dist):
         """
@@ -1362,11 +1491,15 @@ def csi_monitoring():
         all_categories = set(train_dist.index) | set(test_dist.index)
 
         # Align distributions
-        train_dist_aligned = train_dist.reindex(all_categories, fill_value=0.0001)  # Small value to avoid division by zero
+        train_dist_aligned = train_dist.reindex(
+            all_categories, fill_value=0.0001
+        )  # Small value to avoid division by zero
         test_dist_aligned = test_dist.reindex(all_categories, fill_value=0.0001)
 
         # Calculate csi
-        csi_values = (test_dist_aligned - train_dist_aligned) * np.log(test_dist_aligned / train_dist_aligned)
+        csi_values = (test_dist_aligned - train_dist_aligned) * np.log(
+            test_dist_aligned / train_dist_aligned
+        )
         return csi_values.sum()
 
     def calculate_bin_csi(train_df, test_df, feature):
@@ -1382,7 +1515,9 @@ def csi_monitoring():
             DataFrame: csi results for each bin value
         """
         # Get all unique bin values across both datasets
-        all_bins = set(train_df[feature].dropna().unique()) | set(test_df[feature].dropna().unique())
+        all_bins = set(train_df[feature].dropna().unique()) | set(
+            test_df[feature].dropna().unique()
+        )
 
         # Results list for bin-level csi
         bin_csi_results = []
@@ -1416,17 +1551,21 @@ def csi_monitoring():
             if test_bin_pct < 0.0001:
                 test_bin_pct = 0.0001  # Avoid division by zero
 
-            bin_csi = (test_bin_pct - train_bin_pct) * np.log(test_bin_pct / train_bin_pct)
+            bin_csi = (test_bin_pct - train_bin_pct) * np.log(
+                test_bin_pct / train_bin_pct
+            )
 
             # Store result
-            bin_csi_results.append({
-                'feature': feature,
-                'bin_value': bin_value,
-                'train_pct': train_bin_pct,
-                'test_pct': test_bin_pct,
-                'bin_csi': bin_csi,
-                'feature_csi': overall_csi
-            })
+            bin_csi_results.append(
+                {
+                    "feature": feature,
+                    "bin_value": bin_value,
+                    "train_pct": train_bin_pct,
+                    "test_pct": test_bin_pct,
+                    "bin_csi": bin_csi,
+                    "feature_csi": overall_csi,
+                }
+            )
 
         return pd.DataFrame(bin_csi_results)
 
@@ -1451,8 +1590,8 @@ def csi_monitoring():
 
         # First, calculate overall csi for each bin
         overall_results = calculate_feature_bin_csi(df, feature_list)
-        overall_results['segment_type'] = 'Overall'
-        overall_results['segment_value'] = 'All'
+        overall_results["segment_type"] = "Overall"
+        overall_results["segment_value"] = "All"
         all_results.append(overall_results)
 
         # Then calculate csi for each segment column
@@ -1470,14 +1609,18 @@ def csi_monitoring():
 
                 # Skip if not enough data
                 if len(segment_df) < 50:  # Arbitrary threshold
-                    print(f"Skipping {segment_col}={segment_val} due to insufficient data ({len(segment_df)} rows).")
+                    print(
+                        f"Skipping {segment_col}={segment_val} due to insufficient data ({len(segment_df)} rows)."
+                    )
                     continue
 
                 # Calculate csi for this segment
                 try:
-                    segment_results = calculate_feature_bin_csi(segment_df, feature_list)
-                    segment_results['segment_type'] = segment_col
-                    segment_results['segment_value'] = segment_val
+                    segment_results = calculate_feature_bin_csi(
+                        segment_df, feature_list
+                    )
+                    segment_results["segment_type"] = segment_col
+                    segment_results["segment_value"] = segment_val
                     all_results.append(segment_results)
                 except Exception as e:
                     print(f"Error calculating csi for {segment_col}={segment_val}: {e}")
@@ -1504,28 +1647,30 @@ def csi_monitoring():
         df_copy = df.copy()
 
         # Separate train and test data
-        train_df = df_copy[df_copy['dataselection'] == 'Train']
-        test_df = df_copy[df_copy['dataselection'] == 'Test']
+        train_df = df_copy[df_copy["dataselection"] == "Train"]
+        test_df = df_copy[df_copy["dataselection"] == "Test"]
 
         # Skip if either dataset is empty
         if train_df.empty or test_df.empty:
-            print("Warning: Either train or test dataset is empty. Skipping csi calculation.")
+            print(
+                "Warning: Either train or test dataset is empty. Skipping csi calculation."
+            )
             return pd.DataFrame()
 
         # Handle Application_month based on its type
-        if isinstance(df_copy['Application_month'].iloc[0], str):
+        if isinstance(df_copy["Application_month"].iloc[0], str):
             # If it's a string in format 'YYYY-MM-DD', extract just 'YYYY-MM'
-            last_train_month_str = str(train_df['Application_month'].max())
+            last_train_month_str = str(train_df["Application_month"].max())
             if len(last_train_month_str) >= 7:  # Ensure we have at least YYYY-MM
                 last_train_month_str = last_train_month_str[:7]  # Extract YYYY-MM part
         else:
             # If it's already a datetime object
             try:
-                last_train_month = pd.to_datetime(train_df['Application_month'].max())
-                last_train_month_str = last_train_month.strftime('%Y-%m')
+                last_train_month = pd.to_datetime(train_df["Application_month"].max())
+                last_train_month_str = last_train_month.strftime("%Y-%m")
             except:
                 # Fallback if conversion fails
-                last_train_month_str = str(train_df['Application_month'].max())
+                last_train_month_str = str(train_df["Application_month"].max())
 
         # Store all bin-level csi results
         all_bin_results = []
@@ -1533,26 +1678,32 @@ def csi_monitoring():
         # Calculate distribution for each feature in the training set
         for feature in feature_list:
             if feature not in train_df.columns:
-                print(f"Warning: Feature {feature} not found in training data. Skipping.")
+                print(
+                    f"Warning: Feature {feature} not found in training data. Skipping."
+                )
                 continue
 
             # Calculate bin-level csi for the training set against itself (always 0)
             train_bins = train_df[feature].dropna().unique()
             for bin_value in train_bins:
-                all_bin_results.append({
-                    'Month': last_train_month_str,
-                    'feature': feature,
-                    'bin_value': bin_value,
-                    'DateCategory': 'a_Training',
-                    'train_pct': (train_df[feature] == bin_value).mean(),
-                    'test_pct': (train_df[feature] == bin_value).mean(),  # Same as train for training data
-                    'bin_csi': 0.0,  # csi against itself is 0
-                    'feature_csi': 0.0,  # Overall csi against itself is 0
-                    'account_count': train_df['digitalLoanAccountId'].nunique()
-                })
+                all_bin_results.append(
+                    {
+                        "Month": last_train_month_str,
+                        "feature": feature,
+                        "bin_value": bin_value,
+                        "DateCategory": "a_Training",
+                        "train_pct": (train_df[feature] == bin_value).mean(),
+                        "test_pct": (
+                            train_df[feature] == bin_value
+                        ).mean(),  # Same as train for training data
+                        "bin_csi": 0.0,  # csi against itself is 0
+                        "feature_csi": 0.0,  # Overall csi against itself is 0
+                        "account_count": train_df["digitalLoanAccountId"].nunique(),
+                    }
+                )
 
         # Get unique months from test set and sort them
-        test_months = sorted(test_df['Application_month'].unique())
+        test_months = sorted(test_df["Application_month"].unique())
 
         # Create mapping of months to prefixed labels (b, c, d, etc.)
         prefix_map = {}
@@ -1574,10 +1725,10 @@ def csi_monitoring():
             # Use the prefixed month string for sorting
             month_str = prefix_map[month]
 
-            month_df = test_df[test_df['Application_month'] == month]
+            month_df = test_df[test_df["Application_month"] == month]
 
             if not month_df.empty:
-                month_accounts = month_df['digitalLoanAccountId'].nunique()
+                month_accounts = month_df["digitalLoanAccountId"].nunique()
 
                 for feature in feature_list:
                     if feature not in month_df.columns:
@@ -1586,12 +1737,20 @@ def csi_monitoring():
                     # Calculate bin-level csi for this feature in this month
                     try:
                         # Get all unique bin values for this feature across train and test
-                        all_bins = set(train_df[feature].dropna().unique()) | set(month_df[feature].dropna().unique())
+                        all_bins = set(train_df[feature].dropna().unique()) | set(
+                            month_df[feature].dropna().unique()
+                        )
 
                         # Calculate overall feature csi for reference
-                        train_counts = train_df[feature].value_counts(dropna=True, normalize=True)
-                        test_counts = month_df[feature].value_counts(dropna=True, normalize=True)
-                        overall_csi = calculate_categorical_csi(train_counts, test_counts)
+                        train_counts = train_df[feature].value_counts(
+                            dropna=True, normalize=True
+                        )
+                        test_counts = month_df[feature].value_counts(
+                            dropna=True, normalize=True
+                        )
+                        overall_csi = calculate_categorical_csi(
+                            train_counts, test_counts
+                        )
 
                         # Calculate csi for each bin
                         for bin_value in all_bins:
@@ -1606,86 +1765,96 @@ def csi_monitoring():
                                 test_pct = 0.0001
 
                             # Calculate csi for this bin
-                            bin_csi = (test_pct - train_pct) * np.log(test_pct / train_pct)
+                            bin_csi = (test_pct - train_pct) * np.log(
+                                test_pct / train_pct
+                            )
 
                             # Store result
-                            all_bin_results.append({
-                                'Month': original_month_str,
-                                'MonthSortKey': month_str,
-                                'feature': feature,
-                                'bin_value': bin_value,
-                                'DateCategory': 'b_Monthly',
-                                'train_pct': train_pct,
-                                'test_pct': test_pct,
-                                'bin_csi': bin_csi,
-                                'feature_csi': overall_csi,
-                                'account_count': month_accounts
-                            })
+                            all_bin_results.append(
+                                {
+                                    "Month": original_month_str,
+                                    "MonthSortKey": month_str,
+                                    "feature": feature,
+                                    "bin_value": bin_value,
+                                    "DateCategory": "b_Monthly",
+                                    "train_pct": train_pct,
+                                    "test_pct": test_pct,
+                                    "bin_csi": bin_csi,
+                                    "feature_csi": overall_csi,
+                                    "account_count": month_accounts,
+                                }
+                            )
                     except Exception as e:
-                        print(f"Error calculating bin csi for {feature} in {month}: {e}")
+                        print(
+                            f"Error calculating bin csi for {feature} in {month}: {e}"
+                        )
 
         # Create the output DataFrame
         return pd.DataFrame(all_bin_results)
 
     # Features list
     feature_list = [
-    'app_first_competitors_install_to_apply_days_bin',
-        'app_median_time_bw_installed_mins_30d_bin',
-        'app_cnt_absence_tag_90d_bin',
-        'app_cnt_finance_90d_bin',
-        'app_first_payday_install_to_apply_days_bin'
+        "app_first_competitors_install_to_apply_days_bin",
+        "app_median_time_bw_installed_mins_30d_bin",
+        "app_cnt_absence_tag_90d_bin",
+        "app_cnt_finance_90d_bin",
+        "app_first_payday_install_to_apply_days_bin",
     ]
 
     # Define segment columns
-    segment_columns = ['ln_user_type', 'ln_prod_type', 'ln_os_type']
+    segment_columns = ["ln_user_type", "ln_prod_type", "ln_os_type"]
 
     # Calculate bin-level csi for overall and by segments
     bin_results = calculate_segmented_bin_csi(appscoredf, feature_list, segment_columns)
 
-
-
     # Try to combine with s_apps_score results if they exist
     try:
         # First ensure the s_apps_score_output_df has the same structure
-        if 'MonthSortKey' not in s_apps_score_output_df.columns:
-            s_apps_score_output_df['MonthSortKey'] = s_apps_score_output_df['Month']
+        if "MonthSortKey" not in s_apps_score_output_df.columns:
+            s_apps_score_output_df["MonthSortKey"] = s_apps_score_output_df["Month"]
             # Update DateCategory with prefix
-            s_apps_score_output_df['DateCategory'] = s_apps_score_output_df['DateCategory'].apply(
-                lambda x: 'a_Training' if x == 'Training' else 'b_Monthly'
-            )
+            s_apps_score_output_df["DateCategory"] = s_apps_score_output_df[
+                "DateCategory"
+            ].apply(lambda x: "a_Training" if x == "Training" else "b_Monthly")
 
         # Add segment info to s_apps_score_output_df
-        s_apps_score_output_df['segment_type'] = 'Overall'
-        s_apps_score_output_df['segment_value'] = 'All'
+        s_apps_score_output_df["segment_type"] = "Overall"
+        s_apps_score_output_df["segment_value"] = "All"
 
         # Add bin_value column to s_apps_score_output_df (as 'All' for feature-level csi)
-        s_apps_score_output_df['bin_value'] = 'All'
+        s_apps_score_output_df["bin_value"] = "All"
 
         # Rename csivalues to feature_csi for consistency
-        if 'csivalues' in s_apps_score_output_df.columns:
-            s_apps_score_output_df = s_apps_score_output_df.rename(columns={'csivalues': 'feature_csi'})
+        if "csivalues" in s_apps_score_output_df.columns:
+            s_apps_score_output_df = s_apps_score_output_df.rename(
+                columns={"csivalues": "feature_csi"}
+            )
 
         # Add bin_csi column (same as feature_csi for feature-level csi)
-        if 'feature_csi' in s_apps_score_output_df.columns:
-            s_apps_score_output_df['bin_csi'] = s_apps_score_output_df['feature_csi']
+        if "feature_csi" in s_apps_score_output_df.columns:
+            s_apps_score_output_df["bin_csi"] = s_apps_score_output_df["feature_csi"]
 
         # Replace 'scorename' with 'feature' for consistency
-        if 'scorename' in s_apps_score_output_df.columns:
-            s_apps_score_output_df['feature'] = s_apps_score_output_df['feature'].fillna(s_apps_score_output_df['scorename'])
-            s_apps_score_output_df = s_apps_score_output_df.drop('scorename', axis=1)
+        if "scorename" in s_apps_score_output_df.columns:
+            s_apps_score_output_df["feature"] = s_apps_score_output_df[
+                "feature"
+            ].fillna(s_apps_score_output_df["scorename"])
+            s_apps_score_output_df = s_apps_score_output_df.drop("scorename", axis=1)
 
         # Combine with bin_results
-        combined_results = pd.concat([s_apps_score_output_df, bin_results], ignore_index=True)
+        combined_results = pd.concat(
+            [s_apps_score_output_df, bin_results], ignore_index=True
+        )
     except NameError:
         # If s_apps_score_output_df doesn't exist, just use bin_results
         combined_results = bin_results
 
     # Sort by segment_type, segment_value, feature, bin_value, and MonthSortKey
-    sort_columns = ['segment_type', 'segment_value', 'feature', 'bin_value']
-    if 'MonthSortKey' in combined_results.columns:
-        sort_columns.append('MonthSortKey')
+    sort_columns = ["segment_type", "segment_value", "feature", "bin_value"]
+    if "MonthSortKey" in combined_results.columns:
+        sort_columns.append("MonthSortKey")
     else:
-        sort_columns.append('Month')
+        sort_columns.append("Month")
 
     combined_results = combined_results.sort_values(sort_columns)
 
@@ -1693,30 +1862,37 @@ def csi_monitoring():
     # Save the detailed bin-level results
     # combined_results.to_csv('bin_level_csi_results_appscore.csv', index=False)
 
-
     # Function to create pivot table for a given segment and feature - FIXED to avoid overlapping ranges
     def create_bin_pivot(data, segment_type, segment_value, feature=None):
         # Filter by segment
-        segment_data = data[(data['segment_type'] == segment_type) &
-                        (data['segment_value'] == segment_value)]
+        segment_data = data[
+            (data["segment_type"] == segment_type)
+            & (data["segment_value"] == segment_value)
+        ]
 
         # Further filter by feature if specified
         if feature:
-            segment_data = segment_data[segment_data['feature'] == feature]
+            segment_data = segment_data[segment_data["feature"] == feature]
 
         # Create pivot table - rows are bin values, columns are months
         pivot = segment_data.pivot_table(
-            index=['feature', 'bin_value'],
-            columns=['MonthSortKey'] if 'MonthSortKey' in segment_data.columns else ['Month'],
-            values='bin_csi',
-            aggfunc='first'
+            index=["feature", "bin_value"],
+            columns=(
+                ["MonthSortKey"]
+                if "MonthSortKey" in segment_data.columns
+                else ["Month"]
+            ),
+            values="bin_csi",
+            aggfunc="first",
         )
 
         return pivot
 
     # Create bin pivot tables for overall and by segments
-    unique_segment_combos = combined_results[['segment_type', 'segment_value']].drop_duplicates()
-    unique_features = combined_results['feature'].unique()
+    unique_segment_combos = combined_results[
+        ["segment_type", "segment_value"]
+    ].drop_duplicates()
+    unique_features = combined_results["feature"].unique()
 
     # Question - do we need this Excel file?
     # Create Excel writer to save all pivots in one file - FIXED writing to avoid overlapping ranges
@@ -1780,59 +1956,70 @@ def csi_monitoring():
     #             pivot.to_excel(writer, sheet_name=sheet_name, merge_cells=False)
     #             print(f"Created pivot for {segment_type}={segment_value}, feature={feature}")
 
-
     # Calculate bin contribution to total csi
     summary_data = []
 
-    for segment_type in combined_results['segment_type'].unique():
-        for segment_value in combined_results[combined_results['segment_type'] == segment_type]['segment_value'].unique():
-            for feature in combined_results['feature'].unique():
+    for segment_type in combined_results["segment_type"].unique():
+        for segment_value in combined_results[
+            combined_results["segment_type"] == segment_type
+        ]["segment_value"].unique():
+            for feature in combined_results["feature"].unique():
                 # Get data for this segment and feature
                 segment_feature_data = combined_results[
-                    (combined_results['segment_type'] == segment_type) &
-                    (combined_results['segment_value'] == segment_value) &
-                    (combined_results['feature'] == feature)
+                    (combined_results["segment_type"] == segment_type)
+                    & (combined_results["segment_value"] == segment_value)
+                    & (combined_results["feature"] == feature)
                 ]
 
                 if segment_feature_data.empty:
                     continue
 
                 # Get unique months
-                months = segment_feature_data['Month'].unique()
+                months = segment_feature_data["Month"].unique()
 
                 for month in months:
-                    month_data = segment_feature_data[segment_feature_data['Month'] == month]
+                    month_data = segment_feature_data[
+                        segment_feature_data["Month"] == month
+                    ]
 
                     # Get feature csi (should be same for all bins in this feature/month/segment)
-                    feature_csi = month_data['feature_csi'].iloc[0] if not month_data.empty else 0
+                    feature_csi = (
+                        month_data["feature_csi"].iloc[0] if not month_data.empty else 0
+                    )
 
                     # Get top contributing bins
-                    if not month_data.empty and 'bin_csi' in month_data.columns:
+                    if not month_data.empty and "bin_csi" in month_data.columns:
                         # Sort by absolute bin_csi value to get top contributors
-                        top_bins = month_data.sort_values('bin_csi', key=abs, ascending=False)
+                        top_bins = month_data.sort_values(
+                            "bin_csi", key=abs, ascending=False
+                        )
 
                         # Take top 3 bins
                         for i, (_, bin_row) in enumerate(top_bins.iterrows()):
                             if i >= 3:  # Limit to top 3
                                 break
 
-                            bin_value = bin_row['bin_value']
-                            bin_csi = bin_row['bin_csi']
+                            bin_value = bin_row["bin_value"]
+                            bin_csi = bin_row["bin_csi"]
 
                             # Calculate contribution percentage
-                            pct_contribution = (bin_csi / feature_csi * 100) if feature_csi != 0 else 0
+                            pct_contribution = (
+                                (bin_csi / feature_csi * 100) if feature_csi != 0 else 0
+                            )
 
-                            summary_data.append({
-                                'segment_type': segment_type,
-                                'segment_value': segment_value,
-                                'feature': feature,
-                                'Month': month,
-                                'feature_csi': feature_csi,
-                                'bin_value': bin_value,
-                                'bin_csi': bin_csi,
-                                'pct_contribution': pct_contribution,
-                                'rank': i + 1
-                            })
+                            summary_data.append(
+                                {
+                                    "segment_type": segment_type,
+                                    "segment_value": segment_value,
+                                    "feature": feature,
+                                    "Month": month,
+                                    "feature_csi": feature_csi,
+                                    "bin_value": bin_value,
+                                    "bin_csi": bin_csi,
+                                    "pct_contribution": pct_contribution,
+                                    "rank": i + 1,
+                                }
+                            )
 
     # Create summary DataFrame
     if summary_data:
@@ -1840,10 +2027,10 @@ def csi_monitoring():
 
         # Pivot to get a table with top contributors
         contribution_pivot = summary_df.pivot_table(
-            index=['segment_type', 'segment_value', 'feature', 'Month', 'feature_csi'],
-            columns=['rank'],
-            values=['bin_value', 'bin_csi', 'pct_contribution'],
-            aggfunc='first'
+            index=["segment_type", "segment_value", "feature", "Month", "feature_csi"],
+            columns=["rank"],
+            values=["bin_value", "bin_csi", "pct_contribution"],
+            aggfunc="first",
         )
 
     else:
@@ -1851,16 +2038,22 @@ def csi_monitoring():
 
     print("\nAnalysis complete!")
 
-    combined_results['Month'] = combined_results['Month'].replace('2024-06', '2023-12-2024-06')
-    combined_results['MonthSortKey'] = combined_results['MonthSortKey'].fillna('a_2023-12-2024-06')
-    combined_results['Month'] = combined_results['Month'].apply(lambda x: x.split(' 00:00:00')[0] if'00:00:00' in x else x)
-    combined_results['scorename'] = 'apps_score'
-    combined_results['Modelname'] = 'Android_SIL_Apps_Score'
-    combined_results['Description'] = 'Train period from 2023-12 to 2024-06'
+    combined_results["Month"] = combined_results["Month"].replace(
+        "2024-06", "2023-12-2024-06"
+    )
+    combined_results["MonthSortKey"] = combined_results["MonthSortKey"].fillna(
+        "a_2023-12-2024-06"
+    )
+    combined_results["Month"] = combined_results["Month"].apply(
+        lambda x: x.split(" 00:00:00")[0] if "00:00:00" in x else x
+    )
+    combined_results["scorename"] = "apps_score"
+    combined_results["Modelname"] = "Android_SIL_Apps_Score"
+    combined_results["Description"] = "Train period from 2023-12 to 2024-06"
     combined_results
 
-    dataset_id = 'dap_ds_poweruser_playground'
-    table_id = 'F_CSI_MODEL_FEATURES_BIN_TAB_new' # Changes
+    dataset_id = "dap_ds_poweruser_playground"
+    table_id = "F_CSI_MODEL_FEATURES_BIN_TAB_new"  # Changes
     # Define the table schema as per your DataFrame columns
     schema = [
         bigquery.SchemaField("Month", "string"),
@@ -1878,16 +2071,17 @@ def csi_monitoring():
         bigquery.SchemaField("scorename", "string"),
         bigquery.SchemaField("Modelname", "string"),
         bigquery.SchemaField("Description", "string"),
-        ]
+    ]
     # Create the dataset reference
     dataset_ref = client.dataset(dataset_id)
     # Define the table reference
     table_ref = dataset_ref.table(table_id)
     # Configure the job to overwrite the table if it already exists
-    job_config = bigquery.LoadJobConfig(schema = schema)
+    job_config = bigquery.LoadJobConfig(schema=schema)
     # Load the DataFrame into BigQuery
-    job = client.load_table_from_dataframe(combined_results, table_ref, job_config=job_config)
+    job = client.load_table_from_dataframe(
+        combined_results, table_ref, job_config=job_config
+    )
     # Wait for the job to complete
     job.result()
     print(f"Table {table_id} created in dataset {dataset_id}.")
-
